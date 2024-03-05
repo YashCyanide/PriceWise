@@ -19,13 +19,5 @@ export const generateEmailBody = (
 
   let subject = "";
   let body = "";
-  //• Email Functionality using N0deMailer
 
-  switch (key) {
-    case value:
-      break;
-
-    default:
-      break;
-  }
 };
