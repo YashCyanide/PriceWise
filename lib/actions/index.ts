@@ -100,9 +100,9 @@ export async function getSimilarProducts(productId: string): Promise<ProductType
 
   try {
     await connectToDB();
-    const currentProduct = await Product.findById(productId).select('category').lean();
+    const currentProduct = await Product.findById(productId).select('category').lean() as { category?: string } | null;
 
-    if (!currentProduct) {
+    if (!currentProduct || !currentProduct.category) {
       return [];
     }
 
