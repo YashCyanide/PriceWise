@@ -1,14 +1,14 @@
 import Image from 'next/image'
 import React from 'react'
 
-interface props {
+interface Props {
   title: string
   iconSrc: string
   value: string
   borderColor: string
 }
 
-const PriceInfoCard = ({ title, iconSrc, value, borderColor }: props) => {
+const PriceInfoCard = ({ title, iconSrc, value, borderColor }: Props) => {
   return (
     <div className={`price-info_card border-l-[#4CB9E7]`}>
       <p className='text-base text-black-100'>{title}</p>
