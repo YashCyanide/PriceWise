@@ -1,41 +1,41 @@
 "use server";
 
+import { OpenAI } from "openai";
+
 export async function summarizeDescription(description: string): Promise<string> {
   if (!description || description.length < 100) {
     return description;
   }
 
-  const apiKey = process.env.HUGGINGFACE_API_KEY;
+  const apiKey = process.env.HF_TOKEN;
   
   if (!apiKey) {
     return description.substring(0, 200) + "...";
   }
 
   try {
-    const response = await fetch(
-      "https://api-inference.huggingface.co/models/facebook/bart-large-cnn",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          "Content-Type": "application/json",
+    const client = new OpenAI({
+      baseURL: "https://api-inference.huggingface.co/v1",
+      apiKey: apiKey,
+    });
+
+    const chatCompletion = await client.chat.completions.create({
+      model: "meta-llama/Llama-3.2-3B-Instruct",
+      messages: [
+        {
+          role: "system",
+          content: "You are a helpful assistant that summarizes product descriptions into 2-3 concise sentences."
         },
-        body: JSON.stringify({
-          inputs: description.substring(0, 1024),
-          parameters: {
-            max_length: 150,
-            min_length: 50,
-          },
-        }),
-      }
-    );
+        {
+          role: "user",
+          content: `Summarize this product description in 2-3 sentences:\n\n${description.substring(0, 1500)}`
+        }
+      ],
+      max_tokens: 150,
+      temperature: 0.7,
+    });
 
-    if (!response.ok) {
-      throw new Error("Summarization failed");
-    }
-
-    const result = await response.json();
-    return result[0]?.summary_text || description.substring(0, 200) + "...";
+    return chatCompletion.choices[0]?.message?.content || description.substring(0, 200) + "...";
   } catch (error) {
     console.error("AI summarization error:", error);
     return description.substring(0, 200) + "...";
