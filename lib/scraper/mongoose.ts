@@ -1,27 +1,28 @@
 import mongoose from "mongoose";
 
 let isConnected = false;
-//variable to check connection status
 
-export const connectToDB = async () => { 
-
+export const connectToDB = async () => {
   mongoose.set("strictQuery", true);
-  if(!process.env.MONGO_URI) {
-   console.log("MONGO_URI not defined");
+
+  if (!process.env.MONGODB_URI) {
+    throw new Error('MONGODB_URI is not defined in environment variables');
   }
 
-  if (isConnected) { 
-    console.log("db already connected");
+  if (isConnected) {
     return;
   }
 
   try {
-    await mongoose.connect("mongodb+srv://pricewise:pricewise@cluster0.thgiu1p.mongodb.net/?retryWrites=true&w=majority");
+    await mongoose.connect(process.env.MONGODB_URI, {
+      maxPoolSize: 10,
+      serverSelectionTimeoutMS: 5000,
+      socketTimeoutMS: 45000,
+    });
     isConnected = true;
-    console.log("MongoDB already connected");
-
+    console.log("MongoDB connected");
   } catch (error) {
-    console.log("error connecting to db");
+    console.error("MongoDB connection error:", error);
+    throw error;
   }
-
 };

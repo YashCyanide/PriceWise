@@ -3,7 +3,16 @@
 import { EmailContent, EmailProductInfo, NotificationType } from '@/types';
 import nodemailer from 'nodemailer';
 
-
+const escapeHtml = (text: string): string => {
+  const map: Record<string, string> = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#039;'
+  };
+  return text.replace(/[&<>"']/g, (m) => map[m]);
+};
 
 const Notification = {
   WELCOME: 'WELCOME',
@@ -15,13 +24,14 @@ const Notification = {
 export async function generateEmailBody(
   product: EmailProductInfo,
   type: NotificationType
-) {
+): Promise<EmailContent> {
   const THRESHOLD_PERCENTAGE = 40;
-  // Shorten the product title
+  const safeTitle = escapeHtml(product.title);
+  const safeUrl = escapeHtml(product.url);
   const shortenedTitle =
-    product.title.length > 20
-      ? `${product.title.substring(0, 20)}...`
-      : product.title;
+    safeTitle.length > 20
+      ? `${safeTitle.substring(0, 20)}...`
+      : safeTitle;
 
   let subject = "";
   let body = "";
@@ -32,15 +42,14 @@ export async function generateEmailBody(
       body = `
         <div>
           <h2>Welcome to PriceWise 🚀</h2>
-          <p>You are now tracking ${product.title}.</p>
+          <p>You are now tracking ${safeTitle}.</p>
           <p>Here's an example of how you'll receive updates:</p>
           <div style="border: 1px solid #ccc; padding: 10px; background-color: #f8f8f8;">
-            <h3>${product.title} is back in stock!</h3>
-            <p>We're excited to let you know that ${product.title} is now back in stock.</p>
-            <p>Don't miss out - <a href="${product.url}" target="_blank" rel="noopener noreferrer">buy it now</a>!</p>
-            <img src="https://i.ibb.co/pwFBRMC/Screenshot-2023-09-26-at-1-47-50-AM.png" alt="Product Image" style="max-width: 100%;" />
+            <h3>${safeTitle} is back in stock!</h3>
+            <p>We're excited to let you know that ${safeTitle} is now back in stock.</p>
+            <p>Don't miss out - <a href="${safeUrl}" target="_blank" rel="noopener noreferrer">buy it now</a>!</p>
           </div>
-          <p>Stay tuned for more updates on ${product.title} and other products you're tracking.</p>
+          <p>Stay tuned for more updates on ${safeTitle} and other products you're tracking.</p>
         </div>
       `;
       break;
@@ -49,8 +58,8 @@ export async function generateEmailBody(
       subject = `${shortenedTitle} is now back in stock!`;
       body = `
         <div>
-          <h4>Hey, ${product.title} is now restocked! Grab yours before they run out again!</h4>
-          <p>See the product <a href="${product.url}" target="_blank" rel="noopener noreferrer">here</a>.</p>
+          <h4>Hey, ${safeTitle} is now restocked! Grab yours before they run out again!</h4>
+          <p>See the product <a href="${safeUrl}" target="_blank" rel="noopener noreferrer">here</a>.</p>
         </div>
       `;
       break;
@@ -59,8 +68,8 @@ export async function generateEmailBody(
       subject = `Lowest Price Alert for ${shortenedTitle}`;
       body = `
         <div>
-          <h4>Hey, ${product.title} has reached its lowest price ever!!</h4>
-          <p>Grab the product <a href="${product.url}" target="_blank" rel="noopener noreferrer">here</a> now.</p>
+          <h4>Hey, ${safeTitle} has reached its lowest price ever!!</h4>
+          <p>Grab the product <a href="${safeUrl}" target="_blank" rel="noopener noreferrer">here</a> now.</p>
         </div>
       `;
       break;
@@ -69,8 +78,8 @@ export async function generateEmailBody(
       subject = `Discount Alert for ${shortenedTitle}`;
       body = `
         <div>
-          <h4>Hey, ${product.title} is now available at a discount more than ${THRESHOLD_PERCENTAGE}%!</h4>
-          <p>Grab it right away from <a href="${product.url}" target="_blank" rel="noopener noreferrer">here</a>.</p>
+          <h4>Hey, ${safeTitle} is now available at a discount more than ${THRESHOLD_PERCENTAGE}%!</h4>
+          <p>Grab it right away from <a href="${safeUrl}" target="_blank" rel="noopener noreferrer">here</a>.</p>
         </div>
       `;
       break;
@@ -82,51 +91,42 @@ export async function generateEmailBody(
   return { subject, body };
 }
 
-const transporter = nodemailer.createTransport({
-  pool: true,
-  service: 'hotmail',
-  port: 2525,
-  auth: {
-    user: 'pricewise-india@outlook.com',
-    pass: process.env.EMAIL_PASSWORD,
-  },
-  maxConnections: 1
-})
+const getTransporter = () => {
+  const emailUser = process.env.EMAIL_USER;
+  const emailPassword = process.env.EMAIL_PASSWORD;
 
-export const sendEmail = async (emailContent: EmailContent, sendTo: string[]) => {
-  const mailOptions = {
-    from: 'pricewise-india@outlook.com',
-    to: sendTo,
-    html: emailContent.body,
-    subject: emailContent.subject,
+  if (!emailUser || !emailPassword) {
+    throw new Error('Email credentials not configured');
   }
 
-  transporter.sendMail(mailOptions, (error: any, info: any) => {
-    if (error) return console.log(error);
+  return nodemailer.createTransport({
+    pool: true,
+    service: 'hotmail',
+    port: 2525,
+    auth: {
+      user: emailUser,
+      pass: emailPassword,
+    },
+    maxConnections: 1
+  });
+};
 
-    console.log('Email sent: ', info);
-  })
-}
+export const sendEmail = async (emailContent: EmailContent, sendTo: string[]): Promise<void> => {
+  try {
+    const transporter = getTransporter();
+    const emailUser = process.env.EMAIL_USER;
 
-// const transporter = nodemailer.createTransport({
-//   pool: true,
-//   service: 'hotmail',
-//   port: 2525,
-//   auth: {
-//     user: '',
-//     pass: '',
-//   },
-//   maxConnections: 1
+    const mailOptions = {
+      from: emailUser,
+      to: sendTo,
+      html: emailContent.body,
+      subject: emailContent.subject,
+    };
 
-// })
-
-
-
-// export const sendEmail = async (emailContent: EmailContent, sendTo: string[]) => {
-//   const mailOptions = {
-//     from: '',
-//     to: sendTo,
-//     html: emailContent.body,
-//     subject: emailContent.subject,
-//   }
-// }
+    await transporter.sendMail(mailOptions);
+    console.log('Email sent successfully');
+  } catch (error) {
+    console.error('Error sending email:', error);
+    throw error;
+  }
+};

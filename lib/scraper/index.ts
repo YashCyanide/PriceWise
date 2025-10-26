@@ -4,52 +4,63 @@
 
 import axios from "axios";
 import * as cheerio from "cheerio";
-import { extractCurrency, extractDescription, extractPrice, getHighestPrice, getLowestPrice } from "../utils";
+import { extractCurrency, extractDescription, extractPrice } from "../utils";
+import { ScrapedProduct } from "@/types";
 
-export async function scrapeAmazonProduct(url: string) {
-  if (!url) return;
+const isValidAmazonUrl = (url: string): boolean => {
+  try {
+    const parsedUrl = new URL(url);
+    const hostname = parsedUrl.hostname.toLowerCase();
+    return hostname.includes('amazon.com') || hostname.includes('amazon.');
+  } catch {
+    return false;
+  }
+};
 
-  // BrightData proxy configuration
-  const username = String(process.env.BRIGHT_DATA_USERNAME);
-  const password = String(process.env.BRIGHT_DATA_PASSWORD);
+export async function scrapeAmazonProduct(url: string): Promise<ScrapedProduct | null> {
+  if (!url || !isValidAmazonUrl(url)) {
+    throw new Error('Invalid Amazon URL');
+  }
+
+  const username = process.env.BRIGHT_DATA_USERNAME;
+  const password = process.env.BRIGHT_DATA_PASSWORD;
+
+  if (!username || !password) {
+    throw new Error('BrightData credentials not configured');
+  }
   const port = 22225;
-  const session_id = (1000000 * Math.random()) | 0;
+  const sessionId = Math.floor(1000000 * Math.random());
 
   const options = {
     auth: {
-      username: `${username}-session-${session_id}`,
+      username: `${username}-session-${sessionId}`,
       password,
     },
     host: "brd.superproxy.io",
     port,
     rejectUnauthorized: false,
+    timeout: 30000,
   };
 
   try {
-    // Fetch the product page
     const response = await axios.get(url, options);
     const $ = cheerio.load(response.data);
 
-    // Extract the product title
     const title = $("#productTitle").text().trim();
+    if (!title) {
+      throw new Error('Product title not found');
+    }
+
     const currentPrice = extractPrice(
       $(".priceToPay span.a-price-whole"),
-      $(".a.size.base.a-color-price"),
+      $(".a-size-base.a-color-price"),
       $(".a-button-selected .a-color-base")
     );
 
-    // const originalPrice = extractPrice(
-    //   $('#priceblock_ourprice'),
-    //   $('.a-price.a-text-price span.a-offscreen'),
-    //   $('#listPrice'),
-    //   $('#priceblock_dealprice'),
-    //   $('.a-size-base.a-color-price')
-    // );
-    const original_price = extractPrice(
+    const originalPrice = extractPrice(
       $("#priceblock_ourprice"),
       $(".a-price.a-text-price span.a-offscreen"),
       $(".basisPrice"),
-      $(".a-price.a-text-price span.a-offscreen"),
       $("#listPrice"),
       $("#priceblock_dealprice"),
       $(".a-size-base.a-color-price")
@@ -65,42 +76,40 @@ export async function scrapeAmazonProduct(url: string) {
       "{}";
 
     const imageUrls = Object.keys(JSON.parse(images));
-
     const currency = extractCurrency($(".a-price-symbol"));
-    const discountRate = $(".savingsPercentage").text().replace(/[-%]/g, "");
-
+    const discountRate = parseFloat($(".savingsPercentage").text().replace(/[-%]/g, "")) || 0;
     const description = extractDescription($);
     const reviewsCount = parseInt(
-      $("#acrCustomerReviewText.a-size-base").text().trim(),
+      $("#acrCustomerReviewText").text().replace(/[^0-9]/g, ""),
       10
-    );
-    const rating = $("#acrPopover .a-size-base").text().trim();
-    // Construct data object with scraped information
-    const data = {
+    ) || 0;
+    const stars = parseFloat($("#acrPopover").attr("title")?.split(' ')[0] || "0") || 0;
+
+    const finalCurrentPrice = currentPrice || originalPrice;
+    const finalOriginalPrice = originalPrice || currentPrice;
+
+    const data: ScrapedProduct = {
       url,
       currency: currency || "$",
-      image: imageUrls[0],
+      image: imageUrls[0] || "",
       title,
-      currentPrice: Number(currentPrice) || Number(original_price),
-      originalPrice: Number(original_price) || Number(currentPrice),
+      currentPrice: finalCurrentPrice,
+      originalPrice: finalOriginalPrice,
       priceHistory: [],
-      discountRate: Number(discountRate),
-      category: "category",
-      reviewsCount: reviewsCount,
-      stars: Number(rating) || Number(4.5),
+      discountRate,
+      category: "Electronics",
+      reviewsCount,
+      stars,
       isOutOfStock: outOfStock,
       description,
-      lowestPrice: Number(currentPrice) || Number(original_price),
-      highestPrice: Number(original_price) || Number(currentPrice),
-      averagePrice: (Number(currentPrice) + Number(original_price))/2,
+      lowestPrice: finalCurrentPrice,
+      highestPrice: finalOriginalPrice,
+      averagePrice: (finalCurrentPrice + finalOriginalPrice) / 2,
     };
-    const info = $("#prodDetails.a-section").text().trim();
-
-    // console.log("data", {data});
-    // console.log("info", {info});
 
     return data;
-  } catch (error: any) {
-    console.log(error);
+  } catch (error) {
+    console.error('Scraping error:', error);
+    throw new Error('Failed to scrape product');
   }
 }

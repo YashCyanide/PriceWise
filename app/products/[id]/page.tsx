@@ -14,9 +14,17 @@ type Props = {
 };
 
 const productDetails = async ({ params: { id } }: Props) => {
-  const product: Product = await getProductById(id);
+  if (!id) {
+    redirect("/");
+  }
+
+  const product = await getProductById(id);
+  
+  if (!product) {
+    redirect("/");
+  }
+
   const similarProducts = await getSimilarProducts(id);
-  if (!product) redirect("/404");
   return (
     <div className="product-container">
       <div className="flex gap-28 xl:flex-row flex-col">
@@ -120,7 +128,7 @@ const productDetails = async ({ params: { id } }: Props) => {
             <div className="flex gap-5 flex-wrap">
               <PriceInfoCard title="Current Price" iconSrc="/assets/icons/price-tag.svg" value={`${product.currency} ${formatNumber(product.currentPrice)}`}
                 borderColor="#4CB9E7" />
-              <PriceInfoCard title="Average Price" iconSrc="/assets/icons/chart.svg" value={`${product.currency} ${Math.ceil((product.currentPrice)+(product.highestPrice)+(product.lowestPrice))/3}`}
+              <PriceInfoCard title="Average Price" iconSrc="/assets/icons/chart.svg" value={`${product.currency} ${formatNumber(product.averagePrice)}`}
                 borderColor="#4CB9E7" />
               <PriceInfoCard title="Highest Price" iconSrc="/assets/icons/arrow-up.svg" value={`${product.currency} ${formatNumber(product.highestPrice)}`}
                 borderColor="#4CB9E7" />
@@ -140,7 +148,9 @@ const productDetails = async ({ params: { id } }: Props) => {
             Product Description
           </h2>
           <div className="flex flex-col gap-4">
-            {product?.description?.split("\n")}
+            {product.description.split("\n").map((line, index) => (
+              <p key={index} className="text-sm text-gray-700">{line}</p>
+            ))}
           </div>
 
         </div>
