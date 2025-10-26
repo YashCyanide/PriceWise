@@ -36,11 +36,11 @@ const Searchbar = () => {
             const productId = await scrapeAndStoreProduct(searchPrompt);
             if (productId) {
                 router.push(`/products/${productId}`);
+                router.refresh();
             }
         } catch (error) {
             console.error('Error scraping product:', error);
             setError('Failed to scrape product. Please try again.');
-        } finally {
             setIsLoading(false);
         }
     }
