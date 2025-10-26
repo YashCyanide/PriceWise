@@ -39,6 +39,8 @@ export async function scrapeAndStoreProduct(productUrl: string) {
         highestPrice: getHighestPrice(updatedPriceHistory),
         averagePrice: getAveragePrice(updatedPriceHistory),
       };
+    } else {
+      product.priceHistory = [{ price: scrapedProduct.currentPrice, date: new Date() }];
     }
 
     const newProduct = await Product.findOneAndUpdate(
