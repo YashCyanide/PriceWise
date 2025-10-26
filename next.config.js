@@ -15,6 +15,9 @@ const nextConfig = {
         }
         return config;
     },
+    experimental: {
+        optimizePackageImports: ['cheerio', 'axios'],
+    },
 }
 
 module.exports = nextConfig
