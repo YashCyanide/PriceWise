@@ -20,19 +20,15 @@ export async function summarizeDescription(description: string): Promise<string>
     });
 
     const chatCompletion = await client.chat.completions.create({
-      model: "meta-llama/Llama-3.2-3B-Instruct",
+      model: "mistralai/Mistral-7B-Instruct-v0.3",
       messages: [
         {
-          role: "system",
-          content: "You are a helpful assistant that summarizes product descriptions into 2-3 concise sentences."
-        },
-        {
           role: "user",
-          content: `Summarize this product description in 2-3 sentences:\n\n${description.substring(0, 1500)}`
+          content: `Summarize this product description in 2-3 sentences:\n\n${description.substring(0, 1000)}`
         }
       ],
       max_tokens: 150,
-      temperature: 0.7,
+      temperature: 0.5,
     });
 
     return chatCompletion.choices[0]?.message?.content || description.substring(0, 200) + "...";
