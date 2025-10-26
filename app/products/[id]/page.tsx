@@ -15,7 +15,8 @@ type Props = {
   params: { id: string };
 };
 
-const productDetails = async ({ params: { id } }: Props) => {
+const productDetails = async ({ params }: Props) => {
+  const { id } = await params;
   if (!id) {
     redirect("/");
   }
