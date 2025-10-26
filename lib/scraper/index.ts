@@ -42,19 +42,22 @@ export async function scrapeAmazonProduct(url: string): Promise<ScrapedProduct |
   const port = 22225;
   const sessionId = Math.floor(1000000 * Math.random());
 
-  const options = {
-    auth: {
-      username: `${username}-session-${sessionId}`,
-      password,
-    },
-    host: "brd.superproxy.io",
-    port,
-    rejectUnauthorized: false,
-    timeout: 15000,
-  };
-
   try {
-    const response = await axios.get(url, options);
+    const response = await axios.get(url, {
+      httpsAgent: new (require('https').Agent)({
+        rejectUnauthorized: false,
+      }),
+      proxy: {
+        protocol: 'http',
+        host: 'brd.superproxy.io',
+        port: port,
+        auth: {
+          username: `${username}-session-${sessionId}`,
+          password: password,
+        },
+      },
+      timeout: 15000,
+    });
     const $ = cheerio.load(response.data);
 
     const title = $("#productTitle").text().trim();

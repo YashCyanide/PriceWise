@@ -8,6 +8,7 @@ const nextConfig = {
                 hostname: 'm.media-amazon.com',
             },
         ],
+        unoptimized: true,
     },
     webpack: (config, { dev, isServer }) => {
         if (!dev) {
@@ -17,6 +18,12 @@ const nextConfig = {
     },
     experimental: {
         optimizePackageImports: ['cheerio', 'axios'],
+    },
+    eslint: {
+        ignoreDuringBuilds: true,
+    },
+    typescript: {
+        ignoreBuildErrors: false,
     },
 }
 

@@ -96,7 +96,8 @@ const getTransporter = () => {
   const emailPassword = process.env.EMAIL_PASSWORD;
 
   if (!emailUser || !emailPassword) {
-    throw new Error('Email credentials not configured');
+    console.warn('Email credentials not configured, skipping email');
+    return null;
   }
 
   return nodemailer.createTransport({
@@ -114,6 +115,10 @@ const getTransporter = () => {
 export const sendEmail = async (emailContent: EmailContent, sendTo: string[]): Promise<void> => {
   try {
     const transporter = getTransporter();
+    if (!transporter) {
+      console.log('Email not configured, skipping');
+      return;
+    }
     const emailUser = process.env.EMAIL_USER;
 
     const mailOptions = {
