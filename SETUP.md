@@ -72,6 +72,16 @@
 2. Enable "Less secure app access" or use App Password
 3. Add credentials to `.env` file
 
+## AI Setup (Optional)
+
+For AI-powered description summarization:
+
+1. Sign up at [Hugging Face](https://huggingface.co/)
+2. Go to Settings > Access Tokens
+3. Create a new token with read permissions
+4. Add `HUGGINGFACE_API_KEY` to `.env` file
+5. If not configured, descriptions will be truncated to 200 characters
+
 ## Production Deployment
 
 1. Set `NODE_ENV=production` in your environment
@@ -84,3 +94,4 @@
 - **MongoDB Connection Error**: Check your connection string and IP whitelist
 - **Scraping Fails**: Verify BrightData credentials and account status
 - **Email Not Sending**: Check email credentials and app password settings
+- **AI Summarization Not Working**: Verify Hugging Face API key or wait for model to load (first request may take 20s)

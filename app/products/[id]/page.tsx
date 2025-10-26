@@ -1,7 +1,9 @@
 import PriceInfoCard from "@/components/PriceInfoCard";
 import ProductCard from "@/components/ProductCard";
+import PriceHistoryChart from "@/components/PriceHistoryChart";
 import { getProductById, getSimilarProducts } from "@/lib/actions";
 import { formatNumber } from "@/lib/utils";
+import { summarizeDescription } from "@/lib/ai/summarize";
 import { Product } from "@/types";
 import Image from "next/image";
 import Link from "next/link";
@@ -24,6 +26,7 @@ const productDetails = async ({ params: { id } }: Props) => {
     redirect("/");
   }
 
+  const summarizedDescription = await summarizeDescription(product.description);
   const similarProducts = await getSimilarProducts(id);
   return (
     <div className="product-container">
@@ -52,17 +55,19 @@ const productDetails = async ({ params: { id } }: Props) => {
               </Link>
             </div>
             <div className="flex items-center gap-3">
-              <div className="product-hearts">
-                <Image
-                  src="/assets/icons/red-heart.svg"
-                  alt="heart"
-                  width={20}
-                  height={20}
-                />
-                <p className="text-base font-semibold text-[#D46F77]">
-                  {product.reviewsCount}
-                </p>
-              </div>
+              {product.users && product.users.length > 0 && (
+                <div className="product-hearts">
+                  <Image
+                    src="/assets/icons/red-heart.svg"
+                    alt="heart"
+                    width={20}
+                    height={20}
+                  />
+                  <p className="text-base font-semibold text-[#D46F77]">
+                    {product.users.length}
+                  </p>
+                </div>
+              )}
               <div className="p-2 bg-white-200 rounded-10">
                 <Image
                   src="/assets/icons/bookmark.svg"
@@ -93,35 +98,34 @@ const productDetails = async ({ params: { id } }: Props) => {
 
             <div className="flex flex-col gap-4">
               <div className="flex gap-3">
-                <div className="product-stars">
-                  <Image
-                    src="/assets/icons/star.svg"
-                    alt="star"
-                    width={20}
-                    height={20}
-                    className="opacity-50"
-                  />
-                  <p className="text-sm text-primary-orange font-semibold">
-                    {product.stars || 25}
-                  </p>
-                </div>
+                {product.stars > 0 && (
+                  <div className="product-stars">
+                    <Image
+                      src="/assets/icons/star.svg"
+                      alt="star"
+                      width={20}
+                      height={20}
+                    />
+                    <p className="text-sm text-primary-orange font-semibold">
+                      {product.stars.toFixed(1)}
+                    </p>
+                  </div>
+                )}
 
-                <div className="product-reviews">
-                  <Image
-                    src="/assets/icons/comment.svg"
-                    alt="comment"
-                    width={20}
-                    height={20}
-                  />
-                  <p className="text-sm text-secondary font-semibold">
-                    {product.reviewsCount} Reviews
-                  </p>
-                </div>
+                {product.reviewsCount > 0 && (
+                  <div className="product-reviews">
+                    <Image
+                      src="/assets/icons/comment.svg"
+                      alt="comment"
+                      width={20}
+                      height={20}
+                    />
+                    <p className="text-sm text-secondary font-semibold">
+                      {product.reviewsCount.toLocaleString()} Reviews
+                    </p>
+                  </div>
+                )}
               </div>
-              <p className="text-sm text-secondary opacity-70 font-semibold">
-                <span className="text-primary-green font-semibold">93% </span>{" "}
-                of buyers enjoyed this product!
-              </p>
             </div>
           </div>
           <div className="my-7 flex flex-col gap-5">
@@ -138,21 +142,27 @@ const productDetails = async ({ params: { id } }: Props) => {
           </div>
 
           <Modal productId={id} />
-
-          {/* <Modal></Modal> */}
         </div>
       </div>
+
       <div className="flex flex-col gap-20">
+        {product.priceHistory && product.priceHistory.length > 1 && (
+          <div className="flex flex-col gap-5">
+            <h2 className="text-2xl font-bold text-black">Price History</h2>
+            <PriceHistoryChart 
+              priceHistory={product.priceHistory} 
+              currency={product.currency}
+            />
+          </div>
+        )}
+
         <div className="flex flex-col gap-5">
-          <h2 className="text-2xl font-bold text-black ">
+          <h2 className="text-2xl font-bold text-black">
             Product Description
           </h2>
-          <div className="flex flex-col gap-4">
-            {product.description.split("\n").map((line, index) => (
-              <p key={index} className="text-sm text-gray-700">{line}</p>
-            ))}
-          </div>
-
+          <p className="text-base text-gray-700 leading-relaxed">
+            {summarizedDescription}
+          </p>
         </div>
 
         <button className="btn w-fit mx-auto flex items-center justify-center gap-3 min-w-[200px]">
