@@ -50,7 +50,7 @@ export async function scrapeAmazonProduct(url: string): Promise<ScrapedProduct |
     host: "brd.superproxy.io",
     port,
     rejectUnauthorized: false,
-    timeout: 30000,
+    timeout: 15000,
   };
 
   try {
