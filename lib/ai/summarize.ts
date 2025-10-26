@@ -25,10 +25,10 @@ export async function summarizeDescription(description: string): Promise<string>
           messages: [
             {
               role: "user",
-              content: `Summarize this product description in 2-3 concise sentences:\n\n${description.substring(0, 1000)}`
+              content: `Summarize this product description in at least 200 words, highlighting key features and benefits:\n\n${description.substring(0, 2000)}`
             }
           ],
-          max_tokens: 150,
+          max_tokens: 400,
           temperature: 0.5,
         }),
       }
