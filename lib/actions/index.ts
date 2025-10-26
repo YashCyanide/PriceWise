@@ -15,9 +15,10 @@ export async function scrapeAndStoreProduct(productUrl: string) {
   }
 
   try {
-    await connectToDB();
-
-    const scrapedProduct = await scrapeAmazonProduct(productUrl);
+    const [, scrapedProduct] = await Promise.all([
+      connectToDB(),
+      scrapeAmazonProduct(productUrl)
+    ]);
 
     if (!scrapedProduct) {
       throw new Error('Failed to scrape product');
@@ -80,7 +81,11 @@ export async function getProductById(productId: string): Promise<ProductType | n
 export async function getAllProducts(): Promise<ProductType[]> {
   try {
     await connectToDB();
-    const products = await Product.find().sort({ _id: -1 }).limit(20).lean();
+    const products = await Product.find()
+      .select('_id title image currentPrice currency originalPrice category')
+      .sort({ _id: -1 })
+      .limit(20)
+      .lean();
     return JSON.parse(JSON.stringify(products));
   } catch (error) {
     console.error('Error getting all products:', error);
@@ -95,7 +100,7 @@ export async function getSimilarProducts(productId: string): Promise<ProductType
 
   try {
     await connectToDB();
-    const currentProduct = await Product.findById(productId);
+    const currentProduct = await Product.findById(productId).select('category').lean();
 
     if (!currentProduct) {
       return [];
@@ -104,7 +109,10 @@ export async function getSimilarProducts(productId: string): Promise<ProductType
     const similarProducts = await Product.find({
       _id: { $ne: productId },
       category: currentProduct.category,
-    }).limit(6).lean();
+    })
+    .select('_id title image currentPrice currency originalPrice category')
+    .limit(6)
+    .lean();
 
     return JSON.parse(JSON.stringify(similarProducts));
   } catch (error) {
