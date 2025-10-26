@@ -1,36 +1,130 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# PriceWise - Amazon Price Tracker
 
-## Getting Started
+A Next.js application that tracks Amazon product prices and notifies users when prices drop.
 
-First, run the development server:
+## Features
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- 🔍 Scrape Amazon product details
+- 📊 Track price history
+- 📧 Email notifications for price drops
+- 💾 MongoDB database storage
+- 🎨 Modern UI with Tailwind CSS
+- 🔒 Secure credential management
+
+## Tech Stack
+
+- **Framework**: Next.js 14 (App Router)
+- **Language**: TypeScript
+- **Database**: MongoDB with Mongoose
+- **Scraping**: Axios + Cheerio + BrightData Proxy
+- **Email**: Nodemailer
+- **Styling**: Tailwind CSS
+
+## Quick Start
+
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd PriceWise
+   ```
+
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **Set up environment variables**
+   ```bash
+   cp .env.example .env
+   ```
+   Fill in your credentials in `.env` (see SETUP.md for details)
+
+4. **Run the development server**
+   ```bash
+   npm run dev
+   ```
+
+5. **Open your browser**
+   Navigate to [http://localhost:3000](http://localhost:3000)
+
+## Documentation
+
+- [Setup Guide](SETUP.md) - Detailed setup instructions
+- [Security Policy](SECURITY.md) - Security best practices
+
+## Project Structure
+
+```
+PriceWise/
+├── app/                  # Next.js app router pages
+│   ├── api/             # API routes
+│   ├── products/        # Product detail pages
+│   └── page.tsx         # Home page
+├── components/          # React components
+├── lib/                 # Utility functions
+│   ├── actions/         # Server actions
+│   ├── models/          # Mongoose models
+│   ├── scraper/         # Web scraping logic
+│   └── nodemailer/      # Email functionality
+├── types/               # TypeScript type definitions
+└── public/              # Static assets
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Key Features Explained
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Price Tracking
+- Scrapes product data from Amazon
+- Stores price history in MongoDB
+- Calculates lowest, highest, and average prices
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+### Email Notifications
+- Welcome email when tracking starts
+- Price drop alerts
+- Back in stock notifications
+- Threshold discount alerts
 
-## Learn More
+### Cron Job
+- Automated price updates via `/api/cron`
+- Checks all tracked products
+- Sends notifications based on price changes
 
-To learn more about Next.js, take a look at the following resources:
+## Environment Variables
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Required environment variables:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+- `MONGODB_URI` - MongoDB connection string
+- `BRIGHT_DATA_USERNAME` - BrightData proxy username
+- `BRIGHT_DATA_PASSWORD` - BrightData proxy password
+- `EMAIL_USER` - Email account for sending notifications
+- `EMAIL_PASSWORD` - Email account password
 
-## Deploy on Vercel
+## Scripts
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm start` - Start production server
+- `npm run lint` - Run ESLint
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+## Security
+
+⚠️ **Important**: Never commit your `.env` file. All credentials should be kept secure.
+
+See [SECURITY.md](SECURITY.md) for detailed security guidelines.
+
+## Contributing
+
+Contributions are welcome! Please ensure:
+- Code follows TypeScript best practices
+- All security guidelines are followed
+- Tests pass (when implemented)
+- Documentation is updated
+
+## License
+
+MIT License - feel free to use this project for learning and development.
+
+## Acknowledgments
+
+- Built with [Next.js](https://nextjs.org/)
+- Styled with [Tailwind CSS](https://tailwindcss.com/)
+- Scraping powered by [BrightData](https://brightdata.com/)

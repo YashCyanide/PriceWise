@@ -1,24 +1,3 @@
-// export function extractPrice(...elements: any) {
-//     for (const element of elements) {
-        
-//         // const price = element.find('span[id*="priceblock_ourprice"]');
-//         // if (price.length) {
-//         //     return price.text();
-//         // }
-
-//         const priceText = element.text().trim();
-
-//         if(priceText) return priceText.replace(/[^0-9.]+/g, '');
-
-
-//     }
-// }
- 
-// export function extractCurrency(element: any) {
-//     const currency = element.text().trim().slice(0,1);
-//     return currency ? currency : ' ';
-// }
-
 import { PriceHistoryItem, Product } from "@/types";
 
 
@@ -33,20 +12,17 @@ const THRESHOLD_PERCENTAGE = 40;
 
 // Extracts and returns the price from a list of possible elements.
 
-export function extractPrice(...elements: any): number {
+export function extractPrice(...elements: any[]): number {
   for (const element of elements) {
     const priceText = element.text().trim();
 
-    if(priceText) {
-      const cleanPrice = parseFloat(priceText.replace(/[^\d.]/g, ''));
+    if (priceText) {
+      const cleanPrice = priceText.replace(/[^\d.]/g, '');
+      const price = parseFloat(cleanPrice);
 
-      let firstPrice; 
-
-      if (cleanPrice) {
-        firstPrice = parseFloat(cleanPrice.toFixed(2));
-      } 
-
-      return firstPrice || cleanPrice;
+      if (!isNaN(price) && price > 0) {
+        return parseFloat(price.toFixed(2));
+      }
     }
   }
 
@@ -56,16 +32,15 @@ export function extractPrice(...elements: any): number {
 // Extracts and returns the currency symbol from an element.
 export function extractCurrency(element: any): string {
   const currencyText = element.text().trim().slice(0, 1);
-  return currencyText ? currencyText : "";
+  return currencyText || "$";
 }
 
 // Extracts description from two possible elements from amazon
-export function extractDescription($: any) {
-  // these are possible elements holding description of the product
+export function extractDescription($: any): string {
   const selectors = [
     ".a-unordered-list .a-list-item",
     ".a-expander-content p",
-    // Add more selectors here if needed
+    "#feature-bullets ul li",
   ];
 
   for (const selector of selectors) {
@@ -75,41 +50,38 @@ export function extractDescription($: any) {
         .map((_: any, element: any) => $(element).text().trim())
         .get()
         .join("\n");
-      return textContent;
+      if (textContent) {
+        return textContent;
+      }
     }
   }
 
-  // If no matching elements were found, return an empty string
-  return "";
+  return "No description available";
 }
 
 export function getHighestPrice(priceList: PriceHistoryItem[]): number {
-  let highestPrice = priceList[0].price;
-
-  for (let i = 1; i < priceList.length; i++) {
-    if (priceList[i].price > highestPrice) {
-      highestPrice = priceList[i].price;
-    }
+  if (!priceList || priceList.length === 0) {
+    return 0;
   }
 
-  return highestPrice;
+  return Math.max(...priceList.map(item => item.price));
 }
 
 export function getLowestPrice(priceList: PriceHistoryItem[]): number {
-  let lowestPrice = priceList[0].price;
-
-  for (let i = 1; i < priceList.length; i++) {
-    if (priceList[i].price < lowestPrice) {
-      lowestPrice = priceList[i].price;
-    }
+  if (!priceList || priceList.length === 0) {
+    return 0;
   }
 
-  return lowestPrice;
+  return Math.min(...priceList.map(item => item.price));
 }
 
 export function getAveragePrice(priceList: PriceHistoryItem[]): number {
+  if (!priceList || priceList.length === 0) {
+    return 0;
+  }
+
   const sumOfPrices = priceList.reduce((acc, curr) => acc + curr.price, 0);
-  const averagePrice = sumOfPrices / priceList.length || 0;
+  const averagePrice = sumOfPrices / priceList.length;
 
   return parseFloat(averagePrice.toFixed(2));
 }
@@ -135,6 +107,9 @@ export const getEmailNotifType = (
 };
 
 export const formatNumber = (num: number = 0): string => {
+  if (isNaN(num)) {
+    return '0.00';
+  }
   return num.toLocaleString(undefined, {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,

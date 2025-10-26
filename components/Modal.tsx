@@ -10,19 +10,25 @@ interface Props {
 }
 
 const Modal = ({ productId }: Props) => {
-  let [isOpen, setIsOpen] = useState(true)
+  let [isOpen, setIsOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [email, setEmail] = useState('');
+  const [error, setError] = useState('');
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setError('');
     setIsSubmitting(true);
 
-    await addUserEmailToProduct(productId, email);
-
-    setIsSubmitting(false)
-    setEmail('')
-    closeModal()
+    try {
+      await addUserEmailToProduct(productId, email);
+      setEmail('');
+      closeModal();
+    } catch (err) {
+      setError('Failed to track product. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   const openModal = () => setIsOpen(true);
@@ -120,9 +126,11 @@ const Modal = ({ productId }: Props) => {
 
                   <button type="submit"
                     className="dialog-btn"
+                    disabled={isSubmitting}
                   >
                     {isSubmitting ? 'Submitting...' : 'Track'}
                   </button>
+                  {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
                 </form>
               </div>
             </Transition.Child>
