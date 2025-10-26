@@ -156,7 +156,7 @@ const productDetails = async ({ params: { id } }: Props) => {
 
         <div className="flex flex-col gap-5">
           <h2 className="text-2xl font-bold text-black">
-            Product Description
+            Product Description (Summarized with AI)
           </h2>
           <p className="text-base text-gray-700 leading-relaxed">
             {summarizedDescription}
