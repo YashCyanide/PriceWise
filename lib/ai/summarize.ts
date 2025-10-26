@@ -13,7 +13,7 @@ export async function summarizeDescription(description: string): Promise<string>
 
   try {
     const response = await fetch(
-      "https://api-inference.huggingface.co/models/facebook/bart-large-cnn",
+      "https://router.huggingface.co/v1/chat/completions",
       {
         method: "POST",
         headers: {
@@ -21,12 +21,15 @@ export async function summarizeDescription(description: string): Promise<string>
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          inputs: description.substring(0, 1024),
-          parameters: {
-            max_length: 130,
-            min_length: 30,
-            do_sample: false,
-          },
+          model: "Qwen/Qwen2.5-72B-Instruct",
+          messages: [
+            {
+              role: "user",
+              content: `Summarize this product description in 2-3 concise sentences:\n\n${description.substring(0, 1000)}`
+            }
+          ],
+          max_tokens: 150,
+          temperature: 0.5,
         }),
       }
     );
@@ -38,11 +41,11 @@ export async function summarizeDescription(description: string): Promise<string>
     const result = await response.json();
     
     if (result.error) {
-      console.log("Model loading, using fallback");
+      console.log("Model error, using fallback");
       return description.substring(0, 200) + "...";
     }
 
-    return result[0]?.summary_text || description.substring(0, 200) + "...";
+    return result.choices?.[0]?.message?.content || description.substring(0, 200) + "...";
   } catch (error) {
     console.error("AI summarization error:", error);
     return description.substring(0, 200) + "...";
