@@ -2,7 +2,11 @@ import mongoose from "mongoose";
 
 let isConnected = false;
 
-export const connectToDB = async () => {
+/**
+ * Connects to MongoDB database with proper error handling
+ * @throws {Error} If MONGODB_URI is not defined or connection fails
+ */
+export const connectToDB = async (): Promise<void> => {
   mongoose.set("strictQuery", true);
 
   if (!process.env.MONGODB_URI) {
@@ -22,7 +26,9 @@ export const connectToDB = async () => {
     isConnected = true;
     console.log("MongoDB connected");
   } catch (error) {
-    console.error("MongoDB connection error:", error);
-    throw error;
+    isConnected = false;
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error("MongoDB connection error:", errorMessage);
+    throw new Error(`Failed to connect to MongoDB: ${errorMessage}`);
   }
 };
