@@ -4,77 +4,52 @@
 
 import axios from "axios";
 import * as cheerio from "cheerio";
-import { extractCurrency, extractDescription, extractPrice } from "../utils";
-import { ScrapedProduct } from "@/types";
+import { extractCurrency, extractDescription, extractPrice, getHighestPrice, getLowestPrice } from "../utils";
 
-/**
- * Validates if a URL is a valid Amazon product URL
- * @param url - URL to validate
- * @returns true if valid Amazon URL, false otherwise
- */
-const isValidAmazonUrl = (url: string): boolean => {
-  try {
-    const parsedUrl = new URL(url);
-    const hostname = parsedUrl.hostname.toLowerCase();
-    return hostname.includes('amazon.com') || hostname.includes('amazon.');
-  } catch {
-    return false;
-  }
-};
+export async function scrapeAmazonProduct(url: string) {
+  if (!url) return;
 
-/**
- * Scrapes product information from an Amazon product page
- * @param url - Amazon product URL to scrape
- * @returns Scraped product data or null if scraping fails
- * @throws {Error} If URL is invalid or credentials are missing
- */
-export async function scrapeAmazonProduct(url: string): Promise<ScrapedProduct | null> {
-  if (!url || !isValidAmazonUrl(url)) {
-    throw new Error('Invalid Amazon URL');
-  }
-
-  const username = process.env.BRIGHT_DATA_USERNAME;
-  const password = process.env.BRIGHT_DATA_PASSWORD;
-
-  if (!username || !password) {
-    throw new Error('BrightData credentials not configured');
-  }
+  // BrightData proxy configuration
+  const username = String(process.env.BRIGHT_DATA_USERNAME);
+  const password = String(process.env.BRIGHT_DATA_PASSWORD);
   const port = 22225;
-  const sessionId = Math.floor(1000000 * Math.random());
+  const session_id = (1000000 * Math.random()) | 0;
+
+  const options = {
+    auth: {
+      username: `${username}-session-${session_id}`,
+      password,
+    },
+    host: "brd.superproxy.io",
+    port,
+    rejectUnauthorized: false,
+  };
 
   try {
-    const response = await axios.get(url, {
-      proxy: {
-        protocol: 'http',
-        host: 'brd.superproxy.io',
-        port: port,
-        auth: {
-          username: `${username}-session-${sessionId}`,
-          password: password,
-        },
-      },
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-      },
-      timeout: 15000,
-    });
+    // Fetch the product page
+    const response = await axios.get(url, options);
     const $ = cheerio.load(response.data);
 
+    // Extract the product title
     const title = $("#productTitle").text().trim();
-    if (!title) {
-      throw new Error('Product title not found');
-    }
-
     const currentPrice = extractPrice(
       $(".priceToPay span.a-price-whole"),
-      $(".a-size-base.a-color-price"),
+      $(".a.size.base.a-color-price"),
       $(".a-button-selected .a-color-base")
     );
 
-    const originalPrice = extractPrice(
+    // const originalPrice = extractPrice(
+    //   $('#priceblock_ourprice'),
+    //   $('.a-price.a-text-price span.a-offscreen'),
+    //   $('#listPrice'),
+    //   $('#priceblock_dealprice'),
+    //   $('.a-size-base.a-color-price')
+    // );
+    const original_price = extractPrice(
       $("#priceblock_ourprice"),
       $(".a-price.a-text-price span.a-offscreen"),
       $(".basisPrice"),
+      $(".a-price.a-text-price span.a-offscreen"),
       $("#listPrice"),
       $("#priceblock_dealprice"),
       $(".a-size-base.a-color-price")
@@ -90,42 +65,42 @@ export async function scrapeAmazonProduct(url: string): Promise<ScrapedProduct |
       "{}";
 
     const imageUrls = Object.keys(JSON.parse(images));
+
     const currency = extractCurrency($(".a-price-symbol"));
-    const discountRate = parseFloat($(".savingsPercentage").text().replace(/[-%]/g, "")) || 0;
+    const discountRate = $(".savingsPercentage").text().replace(/[-%]/g, "");
+
     const description = extractDescription($);
     const reviewsCount = parseInt(
-      $("#acrCustomerReviewText").text().replace(/[^0-9]/g, ""),
+      $("#acrCustomerReviewText.a-size-base").text().trim(),
       10
-    ) || 0;
-    const stars = parseFloat($("#acrPopover").attr("title")?.split(' ')[0] || "0") || 0;
-
-    const finalCurrentPrice = currentPrice || originalPrice;
-    const finalOriginalPrice = originalPrice || currentPrice;
-    const averagePrice = (finalCurrentPrice + finalOriginalPrice) / 2;
-
-    const data: ScrapedProduct = {
+    );
+    const rating = $("#acrPopover .a-size-base").text().trim();
+    // Construct data object with scraped information
+    const data = {
       url,
       currency: currency || "$",
-      image: imageUrls[0] || "",
+      image: imageUrls[0],
       title,
-      currentPrice: finalCurrentPrice,
-      originalPrice: finalOriginalPrice,
+      currentPrice: Number(currentPrice) || Number(original_price),
+      originalPrice: Number(original_price) || Number(currentPrice),
       priceHistory: [],
-      discountRate,
-      category: "Electronics",
-      reviewsCount,
-      stars,
+      discountRate: Number(discountRate),
+      category: "category",
+      reviewsCount: reviewsCount,
+      stars: Number(rating) || Number(4.5),
       isOutOfStock: outOfStock,
       description,
-      lowestPrice: finalCurrentPrice,
-      highestPrice: finalOriginalPrice,
-      averagePrice,
+      lowestPrice: Number(currentPrice) || Number(original_price),
+      highestPrice: Number(original_price) || Number(currentPrice),
+      averagePrice: (Number(currentPrice) + Number(original_price))/2,
     };
+    const info = $("#prodDetails.a-section").text().trim();
+
+    // console.log("data", {data});
+    // console.log("info", {info});
 
     return data;
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    console.error('Scraping error:', errorMessage);
-    throw new Error(`Failed to scrape product: ${errorMessage}`);
+  } catch (error: any) {
+    console.log(error);
   }
 }
