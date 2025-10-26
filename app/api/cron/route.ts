@@ -17,10 +17,23 @@ export async function GET(request: Request) {
 
     const products = await Product.find({});
 
-    if (!products || products.length === 0) {
+    if (!products || !Array.isArray(products)) {
+      console.error('Invalid products data received from database');
+      return NextResponse.json(
+        { 
+          error: "Failed to fetch products from database",
+          timestamp: new Date().toISOString()
+        },
+        { status: 500 }
+      );
+    }
+
+    if (products.length === 0) {
       return NextResponse.json({
         message: "No products to scrape",
         data: [],
+        total: 0,
+        successful: 0,
       });
     }
 
@@ -97,9 +110,14 @@ export async function GET(request: Request) {
       successful: successfulUpdates.length,
     });
   } catch (error) {
-    console.error('Cron job error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Cron job error:', errorMessage);
     return NextResponse.json(
-      { error: "Failed to process products" },
+      { 
+        error: "Failed to process products",
+        details: errorMessage,
+        timestamp: new Date().toISOString()
+      },
       { status: 500 }
     );
   }
