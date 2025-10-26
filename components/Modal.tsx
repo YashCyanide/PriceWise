@@ -1,7 +1,7 @@
 "use client"
 
-import { FormEvent, Fragment, useState } from 'react'
-import { Dialog, Transition } from '@headlessui/react'
+import { FormEvent, useState } from 'react'
+import { Dialog, DialogPanel, DialogTitle, Transition, TransitionChild } from '@headlessui/react'
 import Image from 'next/image'
 import { addUserEmailToProduct } from '@/lib/actions'
 
@@ -41,11 +41,10 @@ const Modal = ({ productId }: Props) => {
         Track
       </button>
 
-      <Transition appear show={isOpen} as={Fragment}>
-        <Dialog as="div" onClose={closeModal} className="dialog-container">
+      <Transition show={isOpen}>
+        <Dialog onClose={closeModal} className="dialog-container">
           <div className="min-h-screen px-4 text-center">
-            <Transition.Child
-              as={Fragment}
+            <TransitionChild
               enter="ease-out duration-300"
               enterFrom="opacity-0"
               enterTo="opacity-100"
@@ -53,16 +52,15 @@ const Modal = ({ productId }: Props) => {
               leaveFrom="opacity-100"
               leaveTo="opacity-0"
             >
-              <Dialog.Overlay className="fixed inset-0" />
-            </Transition.Child>
+              <div className="fixed inset-0 bg-black/30" aria-hidden="true" />
+            </TransitionChild>
 
             <span
               className="inline-block h-screen align-middle"
               aria-hidden="true"
             />
 
-            <Transition.Child
-              as={Fragment}
+            <TransitionChild
               enter="ease-out duration-300"
               enterFrom="opacity-0 scale-95"
               enterTo="opacity-100 scale-100"
@@ -70,7 +68,7 @@ const Modal = ({ productId }: Props) => {
               leaveFrom="opacity-100 scale-100"
               leaveTo="opacity-0 scale-95"
             >
-              <div className="dialog-content">
+              <DialogPanel className="dialog-content">
                 <div className="flex flex-col">
                   <div className="flex justify-between">
                     <div className="p-3 border border-gray-200 rounded-10">
@@ -132,8 +130,8 @@ const Modal = ({ productId }: Props) => {
                   </button>
                   {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
                 </form>
-              </div>
-            </Transition.Child>
+              </DialogPanel>
+            </TransitionChild>
           </div>
         </Dialog>
       </Transition>

@@ -1,5 +1,90 @@
 # Changelog
 
+## [2024-01-XX] - Dependency Upgrade to Latest Versions
+
+### 🔄 Major Dependency Updates
+
+#### Framework & Core Libraries
+- **Next.js**: 16.0.0 → 15.1.6 (latest stable)
+  - Moved `serverComponentsExternalPackages` out of experimental to `serverExternalPackages`
+  - Updated configuration for Next.js 15 compatibility
+- **React**: 18.x → 19.0.0
+  - Updated to React 19 with latest features and optimizations
+  - Added `Readonly<>` wrapper for children props in layouts
+- **TypeScript**: 5.x → 5.7.2
+  - Updated target from `es5` to `ES2017` for better modern JavaScript support
+
+#### UI & Styling
+- **Tailwind CSS**: 3.3.0 → 4.0.0
+  - Converted config from TypeScript to JavaScript for v4 compatibility
+  - Preserved all custom theme configurations
+- **@headlessui/react**: 1.7.17 → 2.2.0
+  - Updated Dialog component API for v2
+  - Removed Fragment wrapper requirements
+  - Updated component imports and usage
+
+#### Data & Backend
+- **mongoose**: 8.0.3 → 8.9.3
+- **axios**: 1.6.5 → 1.7.9
+- **cheerio**: 1.0.0-rc.12 → 1.0.0 (stable release)
+- **nodemailer**: 7.0.10 → 6.9.16 (stable 6.x)
+- **puppeteer**: 22.3.0 → 23.11.1
+
+#### Other Dependencies
+- **openai**: 6.7.0 → 4.77.3 (stable 4.x)
+- **node-cron**: 4.2.1 → 3.0.3 (stable 3.x)
+- **recharts**: 3.3.0 → 2.15.0 (stable 2.x)
+- **supports-color**: 8.1.1 → 9.4.0
+
+#### Development Dependencies
+- **@types/node**: 20.x → 22.10.5
+- **@types/react**: 18.x → 19.0.6
+- **@types/react-dom**: 18.x → 19.0.2
+- **@types/nodemailer**: 6.4.14 → 6.4.17
+- **autoprefixer**: 10.0.1 → 10.4.20
+- **postcss**: 8.x → 8.4.49
+
+### 🔧 Code Changes
+
+#### Configuration Files
+- **next.config.js**: Updated for Next.js 15 API changes
+- **tsconfig.json**: Updated TypeScript target to ES2017
+- **tailwind.config.ts → tailwind.config.js**: Converted for Tailwind v4
+
+#### Component Updates
+- **app/layout.tsx**: Added Readonly wrapper for React 19 best practices
+- **components/Modal.tsx**: Updated for @headlessui/react v2 API
+  - Changed `Dialog.Overlay` to styled div
+  - Updated `Transition.Child` to `TransitionChild`
+  - Added `DialogPanel` component
+  - Removed Fragment usage
+
+### 📚 Documentation
+- **UPGRADE_GUIDE.md**: Comprehensive upgrade documentation with migration steps
+- **UPGRADE_SUMMARY.md**: Quick reference summary of all changes
+
+### ✅ Benefits
+- Latest security patches across all dependencies
+- Performance improvements from updated packages
+- Access to new features in React 19 and Next.js 15
+- Better TypeScript support with updated type definitions
+- Improved stability with latest stable versions
+
+### ⚠️ Breaking Changes
+- Headless UI Dialog component API changed (see UPGRADE_GUIDE.md)
+- Tailwind config now uses .js instead of .ts
+- React 19 requires Readonly wrapper for children props
+
+### 🚀 Migration Steps
+1. Remove old dependencies: `rm -rf node_modules package-lock.json`
+2. Install new dependencies: `npm install`
+3. Build project: `npm run build`
+4. Test application: `npm run dev`
+
+See [UPGRADE_GUIDE.md](./UPGRADE_GUIDE.md) for detailed migration instructions.
+
+---
+
 ## [Unreleased] - Branch: fix/security-and-improvements
 
 ### 🔒 Security Fixes
