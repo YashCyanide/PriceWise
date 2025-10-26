@@ -12,7 +12,7 @@ import { redirect } from "next/navigation";
 import React from "react";
 
 type Props = {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 };
 
 const productDetails = async ({ params }: Props) => {
