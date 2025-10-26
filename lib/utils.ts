@@ -87,10 +87,16 @@ export function getAveragePrice(priceList: PriceHistoryItem[]): number {
 }
 
 
+/**
+ * Determines which type of email notification should be sent based on product changes
+ * @param scrapedProduct - Newly scraped product data
+ * @param currentProduct - Existing product data from database
+ * @returns Notification type or null if no notification needed
+ */
 export const getEmailNotifType = (
   scrapedProduct: Product,
   currentProduct: Product
-) => {
+): keyof typeof Notification | null => {
   const lowestPrice = getLowestPrice(currentProduct.priceHistory);
 
   if (scrapedProduct.currentPrice < lowestPrice) {
@@ -106,6 +112,11 @@ export const getEmailNotifType = (
   return null;
 };
 
+/**
+ * Formats a number as a currency string with 2 decimal places
+ * @param num - Number to format
+ * @returns Formatted string (e.g., "1,234.56")
+ */
 export const formatNumber = (num: number = 0): string => {
   if (isNaN(num)) {
     return '0.00';
