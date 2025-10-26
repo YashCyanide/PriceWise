@@ -7,6 +7,11 @@ import * as cheerio from "cheerio";
 import { extractCurrency, extractDescription, extractPrice } from "../utils";
 import { ScrapedProduct } from "@/types";
 
+/**
+ * Validates if a URL is a valid Amazon product URL
+ * @param url - URL to validate
+ * @returns true if valid Amazon URL, false otherwise
+ */
 const isValidAmazonUrl = (url: string): boolean => {
   try {
     const parsedUrl = new URL(url);
@@ -17,6 +22,12 @@ const isValidAmazonUrl = (url: string): boolean => {
   }
 };
 
+/**
+ * Scrapes product information from an Amazon product page
+ * @param url - Amazon product URL to scrape
+ * @returns Scraped product data or null if scraping fails
+ * @throws {Error} If URL is invalid or credentials are missing
+ */
 export async function scrapeAmazonProduct(url: string): Promise<ScrapedProduct | null> {
   if (!url || !isValidAmazonUrl(url)) {
     throw new Error('Invalid Amazon URL');
@@ -87,6 +98,7 @@ export async function scrapeAmazonProduct(url: string): Promise<ScrapedProduct |
 
     const finalCurrentPrice = currentPrice || originalPrice;
     const finalOriginalPrice = originalPrice || currentPrice;
+    const averagePrice = (finalCurrentPrice + finalOriginalPrice) / 2;
 
     const data: ScrapedProduct = {
       url,
@@ -104,12 +116,13 @@ export async function scrapeAmazonProduct(url: string): Promise<ScrapedProduct |
       description,
       lowestPrice: finalCurrentPrice,
       highestPrice: finalOriginalPrice,
-      averagePrice: (finalCurrentPrice + finalOriginalPrice) / 2,
+      averagePrice,
     };
 
     return data;
   } catch (error) {
-    console.error('Scraping error:', error);
-    throw new Error('Failed to scrape product');
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Scraping error:', errorMessage);
+    throw new Error(`Failed to scrape product: ${errorMessage}`);
   }
 }
