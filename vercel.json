@@ -3,13 +3,5 @@
     "app/api/**/*.ts": {
       "maxDuration": 30
     }
-  },
-  "env": {
-    "MONGODB_URI": "@mongodb_uri",
-    "BRIGHT_DATA_USERNAME": "@bright_data_username",
-    "BRIGHT_DATA_PASSWORD": "@bright_data_password",
-    "EMAIL_USER": "@email_user",
-    "EMAIL_PASSWORD": "@email_password",
-    "HF_TOKEN": "@hf_token"
   }
 }
