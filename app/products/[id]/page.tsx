@@ -146,15 +146,13 @@ const productDetails = async ({ params: { id } }: Props) => {
       </div>
 
       <div className="flex flex-col gap-20">
-        {product.priceHistory && product.priceHistory.length > 1 && (
-          <div className="flex flex-col gap-5">
-            <h2 className="text-2xl font-bold text-black">Price History</h2>
-            <PriceHistoryChart 
-              priceHistory={product.priceHistory} 
-              currency={product.currency}
-            />
-          </div>
-        )}
+        <div className="flex flex-col gap-5">
+          <h2 className="text-2xl font-bold text-black">Price History</h2>
+          <PriceHistoryChart 
+            priceHistory={product.priceHistory} 
+            currency={product.currency}
+          />
+        </div>
 
         <div className="flex flex-col gap-5">
           <h2 className="text-2xl font-bold text-black">
