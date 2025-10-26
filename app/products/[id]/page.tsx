@@ -26,8 +26,10 @@ const productDetails = async ({ params: { id } }: Props) => {
     redirect("/");
   }
 
-  const summarizedDescription = await summarizeDescription(product.description);
-  const similarProducts = await getSimilarProducts(id);
+  const [summarizedDescription, similarProducts] = await Promise.all([
+    summarizeDescription(product.description),
+    getSimilarProducts(id)
+  ]);
   return (
     <div className="product-container">
       <div className="flex gap-28 xl:flex-row flex-col">
