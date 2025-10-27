@@ -22,6 +22,21 @@ A Next.js application that tracks Amazon product prices and notifies users when 
 
 ## Quick Start
 
+### Automated Setup (Recommended)
+
+**Linux/macOS:**
+```bash
+chmod +x setup.sh
+./setup.sh
+```
+
+**Windows:**
+```bash
+setup.bat
+```
+
+### Manual Setup
+
 1. **Clone the repository**
    ```bash
    git clone <repository-url>
@@ -37,7 +52,7 @@ A Next.js application that tracks Amazon product prices and notifies users when 
    ```bash
    cp .env.example .env
    ```
-   Fill in your credentials in `.env` (see SETUP.md for details)
+   Fill in your credentials in `.env`
 
 4. **Run the development server**
    ```bash
@@ -47,9 +62,11 @@ A Next.js application that tracks Amazon product prices and notifies users when 
 5. **Open your browser**
    Navigate to [http://localhost:3000](http://localhost:3000)
 
+📖 **For detailed setup instructions, see [LOCAL_SETUP.md](LOCAL_SETUP.md)**
+
 ## Documentation
 
-- [Setup Guide](SETUP.md) - Detailed setup instructions
+- [Local Setup Guide](LOCAL_SETUP.md) - Complete local setup instructions
 - [Security Policy](SECURITY.md) - Security best practices
 - [Scraping Optimization](SCRAPING_OPTIMIZATION.md) - Scraping system details
 - [Optimization Summary](OPTIMIZATION_SUMMARY.md) - Recent improvements
