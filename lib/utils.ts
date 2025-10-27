@@ -10,37 +10,46 @@ const Notification = {
 
 const THRESHOLD_PERCENTAGE = 40;
 
-// Extracts and returns the price from a list of possible elements.
-
 export function extractPrice(...elements: any[]): number {
   for (const element of elements) {
+    if (!element || typeof element.text !== 'function') continue;
+
     const priceText = element.text().trim();
+    if (!priceText) continue;
 
-    if (priceText) {
-      const cleanPrice = priceText.replace(/[^\d.]/g, '');
-      const price = parseFloat(cleanPrice);
+    const cleanPrice = priceText.replace(/[^\d.]/g, '');
+    if (!cleanPrice) continue;
 
-      if (!isNaN(price) && price > 0) {
-        return parseFloat(price.toFixed(2));
-      }
+    const price = parseFloat(cleanPrice);
+    if (!isNaN(price) && price > 0 && price < 1000000) {
+      return parseFloat(price.toFixed(2));
     }
   }
 
   return 0;
 }
 
-// Extracts and returns the currency symbol from an element.
 export function extractCurrency(element: any): string {
-  const currencyText = element.text().trim().slice(0, 1);
-  return currencyText || "$";
+  if (!element || typeof element.text !== 'function') return "$";
+
+  const currencyText = element.text().trim();
+  if (!currencyText) return "$";
+
+  const currencyMap: { [key: string]: string } = {
+    '$': '$', '€': '€', '£': '£', '¥': '¥', '₹': '₹'
+  };
+
+  const firstChar = currencyText.charAt(0);
+  return currencyMap[firstChar] || "$";
 }
 
-// Extracts description from two possible elements from amazon
 export function extractDescription($: any): string {
   const selectors = [
+    "#feature-bullets ul li",
     ".a-unordered-list .a-list-item",
     ".a-expander-content p",
-    "#feature-bullets ul li",
+    "#productDescription p",
+    "#aplus .aplus-module"
   ];
 
   for (const selector of selectors) {
@@ -49,9 +58,11 @@ export function extractDescription($: any): string {
       const textContent = elements
         .map((_: any, element: any) => $(element).text().trim())
         .get()
+        .filter((text: string) => text.length > 0)
         .join("\n");
-      if (textContent) {
-        return textContent;
+      
+      if (textContent && textContent.length > 10) {
+        return textContent.slice(0, 1000);
       }
     }
   }
@@ -60,28 +71,42 @@ export function extractDescription($: any): string {
 }
 
 export function getHighestPrice(priceList: PriceHistoryItem[]): number {
-  if (!priceList || priceList.length === 0) {
+  if (!priceList || !Array.isArray(priceList) || priceList.length === 0) {
     return 0;
   }
 
-  return Math.max(...priceList.map(item => item.price));
+  const prices = priceList
+    .map(item => item?.price)
+    .filter(price => typeof price === 'number' && !isNaN(price) && price > 0);
+
+  return prices.length > 0 ? Math.max(...prices) : 0;
 }
 
 export function getLowestPrice(priceList: PriceHistoryItem[]): number {
-  if (!priceList || priceList.length === 0) {
+  if (!priceList || !Array.isArray(priceList) || priceList.length === 0) {
     return 0;
   }
 
-  return Math.min(...priceList.map(item => item.price));
+  const prices = priceList
+    .map(item => item?.price)
+    .filter(price => typeof price === 'number' && !isNaN(price) && price > 0);
+
+  return prices.length > 0 ? Math.min(...prices) : 0;
 }
 
 export function getAveragePrice(priceList: PriceHistoryItem[]): number {
-  if (!priceList || priceList.length === 0) {
+  if (!priceList || !Array.isArray(priceList) || priceList.length === 0) {
     return 0;
   }
 
-  const sumOfPrices = priceList.reduce((acc, curr) => acc + curr.price, 0);
-  const averagePrice = sumOfPrices / priceList.length;
+  const prices = priceList
+    .map(item => item?.price)
+    .filter(price => typeof price === 'number' && !isNaN(price) && price > 0);
+
+  if (prices.length === 0) return 0;
+
+  const sumOfPrices = prices.reduce((acc, curr) => acc + curr, 0);
+  const averagePrice = sumOfPrices / prices.length;
 
   return parseFloat(averagePrice.toFixed(2));
 }

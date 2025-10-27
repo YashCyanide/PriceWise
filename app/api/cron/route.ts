@@ -6,24 +6,88 @@ import { generateEmailBody, sendEmail } from "@/lib/nodemailer";
 import { connectToDB } from "@/lib/mongoose";
 import { User } from "@/types";
 
-
-export const maxDuration = 300; // This function can run for a maximum of 300 seconds
+export const maxDuration = 300;
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
+const BATCH_SIZE = 5;
+const DELAY_BETWEEN_BATCHES = 3000;
+
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+async function processBatch(products: any[]) {
+  const results = await Promise.allSettled(
+    products.map(async (currentProduct) => {
+      try {
+        const scrapedProduct = await scrapeAmazonProduct(currentProduct.url);
+
+        if (!scrapedProduct) {
+          console.warn(`Failed to scrape: ${currentProduct.url}`);
+          return null;
+        }
+
+        const updatedPriceHistory = [
+          ...(currentProduct.priceHistory || []),
+          { price: scrapedProduct.currentPrice, date: new Date() }
+        ];
+
+        const product = {
+          ...scrapedProduct,
+          priceHistory: updatedPriceHistory,
+          lowestPrice: getLowestPrice(updatedPriceHistory),
+          highestPrice: getHighestPrice(updatedPriceHistory),
+          averagePrice: getAveragePrice(updatedPriceHistory)
+        };
+
+        const updatedProduct = await Product.findOneAndUpdate(
+          { url: product.url },
+          product,
+          { new: true }
+        );
+
+        if (!updatedProduct) {
+          console.warn(`Failed to update: ${product.url}`);
+          return null;
+        }
+
+        const emailNotifType = getEmailNotifType(scrapedProduct, currentProduct);
+
+        if (emailNotifType && updatedProduct.users?.length > 0) {
+          try {
+            const productInfo = { title: updatedProduct.title, url: updatedProduct.url };
+            const emailContent = await generateEmailBody(productInfo, emailNotifType);
+            const userEmails = updatedProduct.users.map((user: User) => user.email);
+            await sendEmail(emailContent, userEmails);
+          } catch (emailError) {
+            console.error(`Email error for ${updatedProduct.url}:`, emailError);
+          }
+        }
+
+        return updatedProduct;
+      } catch (error) {
+        console.error(`Error processing ${currentProduct.url}:`, error);
+        return null;
+      }
+    })
+  );
+
+  return results
+    .filter(result => result.status === 'fulfilled' && result.value !== null)
+    .map(result => (result as PromiseFulfilledResult<any>).value);
+}
+
 export async function GET(request: Request) {
+  const startTime = Date.now();
+  
   try {
     await connectToDB();
 
-    const products = await Product.find({});
+    const products = await Product.find({}).lean();
 
     if (!products || !Array.isArray(products)) {
-      console.error('Invalid products data received from database');
+      console.error('Invalid products data from database');
       return NextResponse.json(
-        { 
-          error: "Failed to fetch products from database",
-          timestamp: new Date().toISOString()
-        },
+        { error: "Failed to fetch products", timestamp: new Date().toISOString() },
         { status: 500 }
       );
     }
@@ -31,83 +95,39 @@ export async function GET(request: Request) {
     if (products.length === 0) {
       return NextResponse.json({
         message: "No products to scrape",
-        data: [],
         total: 0,
         successful: 0,
+        failed: 0,
+        duration: 0
       });
     }
 
-    const updatedProducts = await Promise.all(
-      products.map(async (currentProduct) => {
-        try {
-          const scrapedProduct = await scrapeAmazonProduct(currentProduct.url);
+    console.log(`Starting cron job for ${products.length} products`);
 
-          if (!scrapedProduct) {
-            console.log(`Failed to scrape product: ${currentProduct.url}`);
-            return null;
-          }
+    const allResults = [];
+    for (let i = 0; i < products.length; i += BATCH_SIZE) {
+      const batch = products.slice(i, i + BATCH_SIZE);
+      console.log(`Processing batch ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(products.length / BATCH_SIZE)}`);
+      
+      const batchResults = await processBatch(batch);
+      allResults.push(...batchResults);
 
-          const updatedPriceHistory = [
-            ...currentProduct.priceHistory,
-            {
-              price: scrapedProduct.currentPrice,
-              date: new Date(),
-            },
-          ];
+      if (i + BATCH_SIZE < products.length) {
+        await delay(DELAY_BETWEEN_BATCHES);
+      }
+    }
 
-          const product = {
-            ...scrapedProduct,
-            priceHistory: updatedPriceHistory,
-            lowestPrice: getLowestPrice(updatedPriceHistory),
-            highestPrice: getHighestPrice(updatedPriceHistory),
-            averagePrice: getAveragePrice(updatedPriceHistory),
-          };
+    const duration = Date.now() - startTime;
+    const successful = allResults.filter(r => r !== null).length;
 
-          const updatedProduct = await Product.findOneAndUpdate(
-            { url: product.url },
-            product,
-            { new: true }
-          );
-
-          if (!updatedProduct) {
-            console.log(`Failed to update product: ${product.url}`);
-            return null;
-          }
-
-          const emailNotifType = getEmailNotifType(
-            scrapedProduct,
-            currentProduct
-          );
-
-          if (emailNotifType && updatedProduct.users && updatedProduct.users.length > 0) {
-            try {
-              const productInfo = {
-                title: updatedProduct.title,
-                url: updatedProduct.url,
-              };
-              const emailContent = await generateEmailBody(productInfo, emailNotifType);
-              const userEmails = updatedProduct.users.map((user: User) => user.email);
-              await sendEmail(emailContent, userEmails);
-            } catch (emailError) {
-              console.error('Error sending email:', emailError);
-            }
-          }
-
-          return updatedProduct;
-        } catch (error) {
-          console.error(`Error processing product ${currentProduct.url}:`, error);
-          return null;
-        }
-      })
-    );
-
-    const successfulUpdates = updatedProducts.filter(product => product !== null);
+    console.log(`Cron job completed: ${successful}/${products.length} successful in ${duration}ms`);
 
     return NextResponse.json({
       message: "Scraping completed",
-      data: successfulUpdates,
       total: products.length,
-      successful: successfulUpdates.length,
+      successful,
+      failed: products.length - successful,
+      duration: Math.round(duration / 1000)
     });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';

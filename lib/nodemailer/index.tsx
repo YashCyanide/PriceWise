@@ -101,37 +101,39 @@ const getTransporter = () => {
   }
 
   return nodemailer.createTransport({
-    pool: true,
-    service: 'hotmail',
-    port: 2525,
+    service: 'gmail',
     auth: {
       user: emailUser,
-      pass: emailPassword,
-    },
-    maxConnections: 1
+      pass: emailPassword
+    }
   });
 };
 
 export const sendEmail = async (emailContent: EmailContent, sendTo: string[]): Promise<void> => {
+  console.log('📧 Attempting to send email to:', sendTo);
+  
+  const transporter = getTransporter();
+  if (!transporter) {
+    console.warn('⚠️ Email transporter not configured - skipping email');
+    return;
+  }
+
   try {
-    const transporter = getTransporter();
-    if (!transporter) {
-      console.log('Email not configured, skipping');
-      return;
-    }
-    const emailUser = process.env.EMAIL_USER;
-
-    const mailOptions = {
-      from: emailUser,
+    const info = await transporter.sendMail({
+      from: process.env.EMAIL_USER,
       to: sendTo,
-      html: emailContent.body,
       subject: emailContent.subject,
-    };
-
-    await transporter.sendMail(mailOptions);
-    console.log('Email sent successfully');
-  } catch (error) {
-    console.error('Error sending email:', error);
+      html: emailContent.body
+    });
+    console.log('✅ Email sent successfully to:', sendTo);
+    console.log('Message ID:', info.messageId);
+  } catch (error: any) {
+    console.error('❌ Email failed to send');
+    if (error.code === 'EAUTH') {
+      console.error('Auth error: Generate Gmail App Password: https://myaccount.google.com/apppasswords');
+    } else {
+      console.error('Error:', error.message);
+    }
     throw error;
   }
 };

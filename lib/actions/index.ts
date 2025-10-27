@@ -10,38 +10,43 @@ import { User, Product as ProductType } from "@/types";
 
 
 export async function scrapeAndStoreProduct(productUrl: string) {
-  if (!productUrl) {
-    throw new Error('Product URL is required');
+  if (!productUrl || typeof productUrl !== 'string') {
+    throw new Error('Valid product URL is required');
+  }
+
+  if (!productUrl.includes('amazon')) {
+    throw new Error('Only Amazon URLs are supported');
   }
 
   try {
-    const [, scrapedProduct] = await Promise.all([
-      connectToDB(),
-      scrapeAmazonProduct(productUrl)
-    ]);
+    await connectToDB();
+    const scrapedProduct = await scrapeAmazonProduct(productUrl);
 
     if (!scrapedProduct) {
-      throw new Error('Failed to scrape product');
+      throw new Error('Failed to scrape product. Please check the URL and try again.');
     }
-
-    let product = { ...scrapedProduct };
 
     const existingProduct = await Product.findOne({ url: scrapedProduct.url });
 
+    let product;
     if (existingProduct) {
       const updatedPriceHistory = [
-        ...existingProduct.priceHistory,
-        { price: scrapedProduct.currentPrice, date: new Date() },
+        ...(existingProduct.priceHistory || []),
+        { price: scrapedProduct.currentPrice, date: new Date() }
       ];
+      
       product = {
         ...scrapedProduct,
         priceHistory: updatedPriceHistory,
         lowestPrice: getLowestPrice(updatedPriceHistory),
         highestPrice: getHighestPrice(updatedPriceHistory),
-        averagePrice: getAveragePrice(updatedPriceHistory),
+        averagePrice: getAveragePrice(updatedPriceHistory)
       };
     } else {
-      product.priceHistory = [{ price: scrapedProduct.currentPrice, date: new Date() }];
+      product = {
+        ...scrapedProduct,
+        priceHistory: [{ price: scrapedProduct.currentPrice, date: new Date() }]
+      };
     }
 
     const newProduct = await Product.findOneAndUpdate(
@@ -50,11 +55,19 @@ export async function scrapeAndStoreProduct(productUrl: string) {
       { upsert: true, new: true }
     );
 
+    if (!newProduct) {
+      throw new Error('Failed to save product to database');
+    }
+
     revalidatePath(`/products/${newProduct._id}`);
     return newProduct._id.toString();
   } catch (error) {
-    console.error('Error scraping and storing product:', error);
-    throw error;
+    const err = error as Error;
+    console.error('Error scraping and storing product:', {
+      url: productUrl,
+      error: err.message
+    });
+    throw new Error(err.message || 'Failed to scrape and store product');
   }
 }
 

@@ -51,6 +51,8 @@ A Next.js application that tracks Amazon product prices and notifies users when 
 
 - [Setup Guide](SETUP.md) - Detailed setup instructions
 - [Security Policy](SECURITY.md) - Security best practices
+- [Scraping Optimization](SCRAPING_OPTIMIZATION.md) - Scraping system details
+- [Optimization Summary](OPTIMIZATION_SUMMARY.md) - Recent improvements
 
 ## Project Structure
 
